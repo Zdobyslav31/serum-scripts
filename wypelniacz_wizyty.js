@@ -2,7 +2,7 @@
 // @name         Wypelniacz_wizyty
 // @namespace    PrzystanMedyczna
 // @version      1.0
-// @description  Wypełnij podstawowe pola dla wizyty opatrunkowej
+// @description  Wypełnij podstawowe pola wizyty w serum
 // @author       Jedrzej Kubala
 // @match        https://serum.com.pl/dpls/rm/ex.act
 // @icon         https://serum.com.pl/favicon.ico
