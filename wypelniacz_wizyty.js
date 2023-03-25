@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name         Wypelniacz_wizyty
 // @namespace    PrzystanMedyczna
-// @version      1.1
+// @version      1.2
 // @description  Wypełnij podstawowe pola wizyty w serum
+// @homepageURL  https://greasyfork.org/en/scripts/462569-wypelniacz-wizyty
 // @author       Jedrzej Kubala
 // @match        https://serum.com.pl/dpls/rm/ex.act
 // @icon         https://serum.com.pl/favicon.ico
