@@ -1,0 +1,123 @@
+// ==UserScript==
+// @name         Opatrunkowy
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  Wypełnij podstawowe pola dla wizyty opatrunkowej
+// @author       Jedrzej Kubala
+// @match        https://serum.com.pl/dpls/rm/ex.act
+// @icon         https://serum.com.pl/favicon.ico
+// @grant        none
+// ==/UserScript==
+
+(function () {
+    'use strict';
+    const CZYNNOSCI = {
+        opatrunek: {
+            id: 14661,
+            nazwa: 'zmiana opatrunku',
+            btn_name: 'Opatrunek',
+            szablon_opisu: 'Lokalizacja rany: \nOpis rany: \nZastosowano: \n',
+            callback: async (e) => await wypelnij_pola(self)
+        },
+        diagnostyka: {
+            id: 14703,
+            nazwa: 'Pomiar ciśnienia',
+            btn_name: 'Diagnostyka',
+            szablon_opisu: 'CTK: / mmHg, HR: \nGlukoza: \nSaturacja: \nTemperatura: \nEKG: ',
+            callback: async (e) => await wypelnij_pola(self)
+        },
+    }
+
+    const KOMORKA_ZLECAJACA_ID = 290562;
+    const MIEJSCE_ZABIEGU = 'GZ';
+    const BTN_STYLE = "<style>.bubbly-button,body{font-family:Helvetica,Arial,sans-serif}body{font-size:16px;text-align:center;background-color:#f8faff}.bubbly-button{display:inline-block;font-size:1em;padding:1em 2em;margin-left:15px;-webkit-appearance:none;appearance:none;background-color:#ff0081;color:#fff;border-radius:4px;border:none;cursor:pointer;position:relative;transition:transform .1s ease-in,box-shadow .25s ease-in;box-shadow:0 2px 25px rgba(255,0,130,.5)}.bubbly-button:focus{outline:0}.bubbly-button:after,.bubbly-button:before{position:absolute;content:\"\";width:140%;height:100%;left:-20%;z-index:-1000;transition:1.5s ease-in-out;background-repeat:no-repeat}.bubbly-button:before{display:none;top:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 20%,#ff0081 20%,transparent 30%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:10% 10%,20% 20%,15% 15%,20% 20%,18% 18%,10% 10%,15% 15%,10% 10%,18% 18%}.bubbly-button:after{display:none;bottom:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:15% 15%,20% 20%,18% 18%,20% 20%,15% 15%,10% 10%,20% 20%}.bubbly-button:active{transform:scale(.9);background-color:#e60074;box-shadow:0 2px 25px rgba(255,0,130,.2)}.bubbly-button.animate:before{display:block;animation:2s ease-in-out forwards topBubbles}.bubbly-button.animate:after{display:block;animation:2s ease-in-out forwards bottomBubbles}@keyframes topBubbles{0%{background-position:5% 90%,10% 90%,10% 90%,15% 90%,25% 90%,25% 90%,40% 90%,55% 90%,70% 90%}50%{background-position:0 80%,0 20%,10% 40%,20% 0,30% 30%,22% 50%,50% 50%,65% 20%,90% 30%}100%{background-position:0 70%,0 10%,10% 30%,20% -10%,30% 20%,22% 40%,50% 40%,65% 10%,90% 20%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}@keyframes bottomBubbles{0%{background-position:10% -10%,30% 10%,55% -10%,70% -10%,85% -10%,70% -10%,70% 0}50%{background-position:0 80%,20% 80%,45% 60%,60% 100%,75% 70%,95% 60%,105% 0}100%{background-position:0 90%,20% 90%,45% 70%,60% 110%,75% 80%,95% 70%,110% 10%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}</style>"
+
+    var animateButton = function (e) {
+        e.preventDefault;
+        //reset animation
+        e.target.classList.remove('animate');
+
+        e.target.classList.add('animate');
+        setTimeout(function () {
+            e.target.classList.remove('animate');
+        }, 700);
+    };
+
+    function waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+
+            const observer = new MutationObserver(mutations => {
+                if (document.querySelector(selector)) {
+                    resolve(document.querySelector(selector));
+                    observer.disconnect();
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+
+    async function wypelnij_typ_czynnosci(czynnosc) {
+        f_dodaj_typ_czynnosci('');
+        await waitForElm('#gabzab_typczynnosci2_t');
+        $('gabzab_typczynnosci2_w').setAttribute('value', czynnosc.id);
+        $('gabzab_typczynnosci2_t').setAttribute('value', czynnosc.nazwa);
+        $('czynnosc_typ').innerHTML = czynnosc.nazwa;
+        f_zbierz_info_czynnosc('', 'T');
+        $('sel_zab_miejsce').value = MIEJSCE_ZABIEGU;
+    }
+
+    function dodaj_szablon_opisu(config) {
+        const textarea = $('gab_badanie_przedmiotowe_w');
+        if (textarea.value !== '') textarea.value += '\n';
+        textarea.value += config.szablon_opisu;
+    }
+
+    async function wypelnij_pola(config) {
+        console.dir(config)
+        await wypelnij_typ_czynnosci(config);
+        $('gab_komorka2_w').value = KOMORKA_ZLECAJACA_ID;
+        dodaj_szablon_opisu(config);
+    }
+
+    function addButton(key, config, container) {
+        var id = key + '_btn'
+        const button = '<a class="bubbly-button" id="' + id + '" href="#">' + config.btn_name + '</a>'
+        container.insertAdjacentHTML('beforeend', button);
+        $(id).addEventListener('click', config.callback, false);
+
+    }
+
+    function addAllButtons() {
+        var container = document.getElementsByClassName('td_wiznow_gora')[0]
+        container.innerHTML += BTN_STYLE
+        Object.entries(CZYNNOSCI).forEach(([key, value]) => {
+            addButton(key, value, container)
+        });
+        var bubblyButtons = document.getElementsByClassName("bubbly-button");
+        for (var i = 0; i < bubblyButtons.length; i++) {
+            bubblyButtons[i].addEventListener('click', animateButton, false);
+        }
+    }
+
+    const targetNode = document.getElementsByTagName('body')[0];
+    const config = { attributes: true, childList: true, subtree: true };
+    const callback = (mutationList, observer) => {
+        for (const mutation of mutationList) {
+            if (mutation.type === "childList" && mutation.addedNodes.length && mutation.addedNodes[0].classList &&
+                mutation.addedNodes[0].classList.length && mutation.addedNodes[0].classList.contains('pas_win')
+            ) {
+                addAllButtons();
+            }
+        }
+    };
+    const obs = new MutationObserver(callback);
+    obs.observe(targetNode, config);
+
+})();
