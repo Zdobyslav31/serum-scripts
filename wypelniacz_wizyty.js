@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wypelniacz_wizyty
 // @namespace    PrzystanMedyczna
-// @version      1.2
+// @version      1.3
 // @description  Wypełnij podstawowe pola wizyty w serum
 // @homepageURL  https://greasyfork.org/en/scripts/462569-wypelniacz-wizyty
 // @author       Jedrzej Kubala
@@ -14,7 +14,7 @@
     'use strict';
     const KOMORKA_ZLECAJACA_ID = 290562;
     const MIEJSCA_ZABIEGU = { gabinet: 'GZ', teren: 'DCH' };
-    const COLOR_OVERRIDE = { green: 'cl-ovd-green', blue: 'cl-ovd-blue' }
+    const COLOR_OVERRIDE = { green: 'cl-ovd-green', blue: 'cl-ovd-blue', navy: 'cl-ovd-navy' }
 
     class Preset {
         constructor(data) {
@@ -30,13 +30,23 @@
 
     const PRESETS = [
         new Preset({
-            btn_id: 'opatrunek_btn',
-            btn_name: 'Opatrunek',
-            szablon_opisu: 'Lokalizacja rany: \nOpis rany: \nZastosowano: \n',
+            btn_id: 'nowy_btn',
+            btn_name: 'Nowy pacjent',
+            szablon_opisu: 'Wiek rany:\n\nEtiologia rany:\n  owrzodzenie / ZSC / uraz / odleżyna / odmrożenie / oparzenie / nieznana lub niepewna\n\nDotychczasowe leczenie:\n\nChoroby współistniejące i czynniki środowiskowe:\n  cukrzyca; niewydolność krążeniowa; nadciśnienie; nikotynizm; nadużywanie alkoholu; trudne warunki higieniczne\n',
             czynnosci: [
                 { id: 14661, nazwa: 'zmiana opatrunku' },
             ],
             miejsce: MIEJSCA_ZABIEGU.gabinet
+        }),
+        new Preset({
+            btn_id: 'opatrunek_btn',
+            btn_name: 'Opatrunek',
+            szablon_opisu: 'Lokalizacja i wielkość rany: \n\nOstatnia zmiana opatrunku: \n\nW loży rany obecne (wpisać jaką część loży rany zajmują):\n martwica sucha; martwica rozpływna; włóknik (wilgotny/suchy, łatwo/trudno usuwalny); ziarnina; naskórek\n\nBrzegi rany:\n płaskie / pochyłe / ostro wycięte / podminowane\n podniesione / głębokie\n zmacerowane / wysuszone\n pokryte włóknikiem / strupem\n\nSkóra wokół rany:\n zdrowa / obrzęknięta / zaczerwieniona / ucieplona\n zmacerowana / wysuszona / łuszcząca się\n\nObjawy infekcji:\n brak cech gojenia; zwiększony wysięk; zaczerwienienie; martwica lub włóknik; nieprzyjemny zapach; powiększenie rany; ucieplenie; widoczna lub wyczuwalna kość; nowe owrzodzenia; rumień lub obrzęk\n\nBól:\n umiarkowany / silny / bardzo silny\n\nWzględem ostatniej wizyty:\n poprawa / brak zmian / pogorszenie\n\nZastosowano:\n - przymoczka?\n - opatrunek pierwotny: \n - opatrunek wtórny: \n - na skórę dookoła: \n - kompresjoterapia?\n',
+            czynnosci: [
+                { id: 14661, nazwa: 'zmiana opatrunku' },
+            ],
+            miejsce: MIEJSCA_ZABIEGU.gabinet,
+            kolor: COLOR_OVERRIDE.navy,
         }),
         new Preset({
             btn_id: 'diagnostyka_btn',
@@ -64,7 +74,7 @@
         }),
     ]
 
-    const BTN_STYLE = "<style>.bubbly-button,body{font-family:Helvetica,Arial,sans-serif}body{font-size:16px;text-align:center;background-color:#f8faff}.cl-ovd-green{background-color:#61ce70!important;box-shadow:0 2px 25px rgba(97,206,112,.5)!important}.cl-ovd-blue{background-color:#6ec1e4!important;box-shadow:0 2px 25px rgba(110,193,228,.5)!important}.bubbly-button{display:inline-block;font-size:1em;padding:1em 2em;margin-left:15px;-webkit-appearance:none;appearance:none;background-color:#ff0081;color:#fff;border-radius:4px;border:none;cursor:pointer;position:relative;transition:transform .1s ease-in,box-shadow .25s ease-in;box-shadow:0 2px 25px rgba(255,0,130,.5)}.bubbly-button:focus{outline:0}.bubbly-button:after,.bubbly-button:before{position:absolute;content:\"\";width:140%;height:100%;left:-20%;z-index:-1000;transition:.5s ease-in-out;background-repeat:no-repeat}.bubbly-button:before{display:none;top:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 20%,#ff0081 20%,transparent 30%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:10% 10%,20% 20%,15% 15%,20% 20%,18% 18%,10% 10%,15% 15%,10% 10%,18% 18%}.bubbly-button:after{display:none;bottom:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:15% 15%,20% 20%,18% 18%,20% 20%,15% 15%,10% 10%,20% 20%}.bubbly-button:active{transform:scale(.9);background-color:#e60074;box-shadow:0 2px 25px rgba(255,0,130,.2)}.bubbly-button.animate:before{display:block;animation:.75s ease-in-out forwards topBubbles}.bubbly-button.animate:after{display:block;animation:.75s ease-in-out forwards bottomBubbles}@keyframes topBubbles{0%{background-position:5% 90%,10% 90%,10% 90%,15% 90%,25% 90%,25% 90%,40% 90%,55% 90%,70% 90%}50%{background-position:0 80%,0 20%,10% 40%,20% 0,30% 30%,22% 50%,50% 50%,65% 20%,90% 30%}100%{background-position:0 70%,0 10%,10% 30%,20% -10%,30% 20%,22% 40%,50% 40%,65% 10%,90% 20%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}@keyframes bottomBubbles{0%{background-position:10% -10%,30% 10%,55% -10%,70% -10%,85% -10%,70% -10%,70% 0}50%{background-position:0 80%,20% 80%,45% 60%,60% 100%,75% 70%,95% 60%,105% 0}100%{background-position:0 90%,20% 90%,45% 70%,60% 110%,75% 80%,95% 70%,110% 10%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}</style>"
+    const BTN_STYLE = "<style>.bubbly-button,body{font-family:Helvetica,Arial,sans-serif}body{font-size:16px;text-align:center;background-color:#f8faff}.cl-ovd-navy{background-color:#174674!important;box-shadow:0 2px 25px rgba(23,70,116,.5)!important}.cl-ovd-green{background-color:#61ce70!important;box-shadow:0 2px 25px rgba(97,206,112,.5)!important}.cl-ovd-blue{background-color:#6ec1e4!important;box-shadow:0 2px 25px rgba(110,193,228,.5)!important}.bubbly-button{display:inline-block;font-size:1em;padding:1em 2em;margin-left:15px;-webkit-appearance:none;appearance:none;background-color:#ff0081;color:#fff;border-radius:4px;border:none;cursor:pointer;position:relative;transition:transform .1s ease-in,box-shadow .25s ease-in;box-shadow:0 2px 25px rgba(255,0,130,.5)}.bubbly-button:focus{outline:0}.bubbly-button:after,.bubbly-button:before{position:absolute;content:\"\";width:140%;height:100%;left:-20%;z-index:-1000;transition:.5s ease-in-out;background-repeat:no-repeat}.bubbly-button:before{display:none;top:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 20%,#ff0081 20%,transparent 30%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:10% 10%,20% 20%,15% 15%,20% 20%,18% 18%,10% 10%,15% 15%,10% 10%,18% 18%}.bubbly-button:after{display:none;bottom:-75%;background-image:radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,transparent 10%,#ff0081 15%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%),radial-gradient(circle,#ff0081 20%,transparent 20%);background-size:15% 15%,20% 20%,18% 18%,20% 20%,15% 15%,10% 10%,20% 20%}.bubbly-button:active{transform:scale(.9);background-color:#e60074;box-shadow:0 2px 25px rgba(255,0,130,.2)}.bubbly-button.animate:before{display:block;animation:.75s ease-in-out forwards topBubbles}.bubbly-button.animate:after{display:block;animation:.75s ease-in-out forwards bottomBubbles}@keyframes topBubbles{0%{background-position:5% 90%,10% 90%,10% 90%,15% 90%,25% 90%,25% 90%,40% 90%,55% 90%,70% 90%}50%{background-position:0 80%,0 20%,10% 40%,20% 0,30% 30%,22% 50%,50% 50%,65% 20%,90% 30%}100%{background-position:0 70%,0 10%,10% 30%,20% -10%,30% 20%,22% 40%,50% 40%,65% 10%,90% 20%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}@keyframes bottomBubbles{0%{background-position:10% -10%,30% 10%,55% -10%,70% -10%,85% -10%,70% -10%,70% 0}50%{background-position:0 80%,20% 80%,45% 60%,60% 100%,75% 70%,95% 60%,105% 0}100%{background-position:0 90%,20% 90%,45% 70%,60% 110%,75% 80%,95% 70%,110% 10%;background-size:0 0,0 0,0 0,0 0,0 0,0 0}}</style>"
 
     var animateButton = function (e) {
         e.preventDefault;
