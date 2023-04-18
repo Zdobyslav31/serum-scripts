@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.0
+// @version      1.1
 // @description  Pobierz dane do grantu
-// @homepageURL  
+// @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
 // @match        https://serum.com.pl/dpls/rm/ex.act
 // @icon         https://serum.com.pl/favicon.ico
