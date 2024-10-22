@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wypelniacz_wizyty
 // @namespace    PrzystanMedyczna
-// @version      1.4
+// @version      1.5
 // @description  Wypełnij podstawowe pola wizyty w serum
 // @homepageURL  https://greasyfork.org/en/scripts/462569-wypelniacz-wizyty
 // @author       Jedrzej Kubala
@@ -32,7 +32,7 @@
         new Preset({
             btn_id: 'nowy_btn',
             btn_name: 'Nowy pacjent opatr.',
-            szablon_opisu: 'UWAGI DLA KOLEJNEGO DYŻURU: \n\nWiek rany:\n\nLokalizacja i wielkość rany: \n\nEtiologia rany:\n owrzodzenie / ZSC / uraz / odleżyna / odmrożenie / oparzenie / nieznana lub niepewna\n\nDotychczasowe leczenie:\n\nChoroby współistniejące i czynniki środowiskowe:\n cukrzyca; niewydolność krążeniowa; nadciśnienie; nikotynizm; nadużywanie alkoholu; trudne warunki higieniczne; pacjent leżący\n\nW loży rany obecne (wpisać jaką część loży rany zajmują):\n martwica sucha; martwica rozpływna; włóknik (wilgotny/suchy, łatwo/trudno usuwalny); ziarnina; naskórek\n\nBrzegi rany:\n płaskie / pochyłe / ostro wycięte / wałowate\n podniesione / głębokie\n pokryte włóknikiem / strupem\n\nSkóra wokół rany:\n zdrowa / obrzęknięta / zaczerwieniona / ucieplona\n zmacerowana / wysuszona / łuszcząca się\n\nObjawy infekcji:\n brak cech gojenia; zwiększony wysięk; zaczerwienienie; martwica lub włóknik; nieprzyjemny zapach; powiększenie rany; ucieplenie; widoczna lub wyczuwalna kość; nowe owrzodzenia; rumień lub obrzęk; śliska, błyszcząca loża rany\n\nBól:\n brak / umiarkowany / silny / bardzo silny\n\nZastosowano:\n - przymoczka?\n - opatrunek pierwotny: \n - opatrunek wtórny: \n - na skórę dookoła: \n - kompresjoterapia?\n',
+            szablon_opisu: 'Wywiad: (pamiętaj aby najważniejsze informacje wpisać w zakładkę "Pacjent podsumowanie") \nLokalizacja i wielkość rany: \nOpis rany: \nZmiana względem ostatniej wizyty: \nPostępowanie: \nUwagi dla kolejnego dyżuru: \n',
             czynnosci: [
                 { id: 14661, nazwa: 'zmiana opatrunku' },
             ],
@@ -41,7 +41,7 @@
         new Preset({
             btn_id: 'opatrunek_btn',
             btn_name: 'Opatrunek',
-            szablon_opisu: 'UWAGI DLA KOLEJNEGO DYŻURU: \n\nLokalizacja i wielkość rany: \n\nW loży rany obecne (wpisać jaką część loży rany zajmują):\n martwica sucha; martwica rozpływna; włóknik (wilgotny/suchy, łatwo/trudno usuwalny); ziarnina; naskórek\n\nBrzegi rany:\n płaskie / pochyłe / ostro wycięte / wałowate\n podniesione / głębokie\n pokryte włóknikiem / strupem\n\nSkóra wokół rany:\n zdrowa / obrzęknięta / zaczerwieniona / ucieplona\n zmacerowana / wysuszona / łuszcząca się\n\nObjawy infekcji:\n brak cech gojenia; zwiększony wysięk; zaczerwienienie; martwica lub włóknik; nieprzyjemny zapach; powiększenie rany; ucieplenie; widoczna lub wyczuwalna kość; nowe owrzodzenia; rumień lub obrzęk; śliska, błyszcząca loża rany\n\nBól:\n  brak / umiarkowany / silny / bardzo silny\n\nWzględem ostatniej wizyty:\n poprawa / brak zmian / pogorszenie\n\nZastosowano:\n - przymoczka?\n - opatrunek pierwotny: \n - opatrunek wtórny: \n - na skórę dookoła: \n - kompresjoterapia?\n',
+            szablon_opisu: 'Lokalizacja i wielkość rany: \nOpis rany: \nZmiana względem ostatniej wizyty: \nPostępowanie: \nUwagi dla kolejnego dyżuru: \n',
             czynnosci: [
                 { id: 14661, nazwa: 'zmiana opatrunku' },
             ],
