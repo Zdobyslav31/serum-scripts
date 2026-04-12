@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.2
+// @version      1.3
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -267,6 +267,7 @@
             data.push(...scrapeVisitsFromPage());
             if (i + 1 < pages) await nextPage(i + 1);
         }
+        data.sort((a, b) => a.date.localeCompare(b.date));
         assignDutyNumbers(data);
         exportVisitsToCsv(data);
     }
