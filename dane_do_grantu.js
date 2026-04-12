@@ -125,15 +125,20 @@
         'Mateusz Gajda',
     ];
 
+    // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    const WEEKDAY_PLACE = {
+        1: 'noclegownia męska',
+        2: 'noclegownia męska',
+        3: 'int./dyżur terenowy',
+        4: 'int./dyżur terenowy',
+        6: 'noclegownia męska',
+    };
+
     function getPlace(dateString, personnel) {
         if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => personnel.includes(name))) {
             return 'noclegownia żeńska';
         }
-        const dayOfWeek = new Date(dateString).getDay();
-        // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-        if (dayOfWeek === 3 || dayOfWeek === 4) return 'int./dyżur terenowy';
-        if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 6) return 'noclegownia męska';
-        return '';
+        return WEEKDAY_PLACE[new Date(dateString).getDay()] || '';
     }
 
     const HEADERS = {
@@ -174,10 +179,14 @@
 
     }
 
+    function isMedicalHelpProvided(dateString, place) {
+        const isMonday = new Date(dateString).getDay() === 1;
+        return isMonday || place === 'noclegownia żeńska';
+    }
+
     function normaliseData(date, patient, birthdate, personnel) {
         const isoDate = changeDateOrder(date);
         const place = getPlace(isoDate, personnel);
-        const isMonday = new Date(isoDate).getDay() === 1;
         return {
             duty: '',
             date: isoDate,
@@ -185,7 +194,7 @@
             patient: patient.split('\xa0')[0].split(' ').map(word => word.charAt(0)).join('')
                 + ' '
                 + (birthdate ? changeDateOrder(birthdate).replace('-', '.') : ''),
-            customField1: (isMonday || place === 'noclegownia żeńska') ? "1" : "0",
+            customField1: isMedicalHelpProvided(isoDate, place) ? "1" : "0",
             customField2: "1",
             team: ""
         }
