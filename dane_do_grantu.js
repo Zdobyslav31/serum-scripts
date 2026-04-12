@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.1
+// @version      1.2
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -121,6 +121,33 @@
         return itemsFormatted
     }
 
+    // Personnel whose visits are always assigned to "noclegownia żeńska"
+    // regardless of the weekday. This takes priority over WEEKDAY_PLACE.
+    // To add more personnel, append their full name as it appears in Serum's
+    // "Personel" column.
+    const NOCLEGOWNIA_ZENSKA_PERSONNEL = [
+        'Mateusz Gajda',
+    ];
+
+    // Maps weekday number to the value of "Miejsce świadczenia dyżuru" column.
+    // Keys are JS Date.getDay() values: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat.
+    // Weekdays not listed here (Sun, Fri) will produce an empty value.
+    // This mapping is only used when the personnel is NOT in NOCLEGOWNIA_ZENSKA_PERSONNEL.
+    const WEEKDAY_PLACE = {
+        1: 'noclegownia męska',
+        2: 'noclegownia męska',
+        3: 'int./dyżur terenowy',
+        4: 'int./dyżur terenowy',
+        6: 'noclegownia męska',
+    };
+
+    function getPlace(dateString, personnel) {
+        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => personnel.includes(name))) {
+            return 'noclegownia żeńska';
+        }
+        return WEEKDAY_PLACE[new Date(dateString).getDay()] || '';
+    }
+
     const HEADERS = {
         duty: '"nr dyżuru"',
         date: '"Data"',
@@ -155,21 +182,29 @@
 
     function changeDateOrder(dateString) {
         const matches = dateString.match(/\d+/g);
-        return `${matches[2]}-${matches[1]}=${matches[0]}`
+        return `${matches[2]}-${matches[1]}-${matches[0]}`
 
     }
 
-    function normaliseData(date, patient, birthdate) {
+    // Determines the value of "Udzielono pomocy lekarskiej" column (1 or 0).
+    // Medical help is marked as provided (1) when the visit falls on a Monday
+    // or takes place at "noclegownia żeńska". All other visits get 0.
+    function isMedicalHelpProvided(dateString, place) {
+        const isMonday = new Date(dateString).getDay() === 1;
+        return isMonday || place === 'noclegownia żeńska';
+    }
+
+    function normaliseData(date, patient, birthdate, personnel) {
+        const isoDate = changeDateOrder(date);
+        const place = getPlace(isoDate, personnel);
         return {
             duty: '',
-            date: new Date(changeDateOrder(date)).toLocaleDateString('pl-PL',
-                { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-            ),
-            place: '',
+            date: isoDate,
+            place: place,
             patient: patient.split('\xa0')[0].split(' ').map(word => word.charAt(0)).join('')
                 + ' '
                 + (birthdate ? changeDateOrder(birthdate).replace('-', '.') : ''),
-            customField1: "1",
+            customField1: isMedicalHelpProvided(isoDate, place) ? "1" : "0",
             customField2: "1",
             team: ""
         }
@@ -182,11 +217,13 @@
         const dateCellIndex = header.childElements().findIndex(e => e.textContent === 'Data od');
         const patientCellIndex = header.childElements().findIndex(e => e.textContent === 'Pacjent');
         const birthdateCellIndex = header.childElements().findIndex(e => e.textContent === 'Data urodzenia');
+        const personnelCellIndex = header.childElements().findIndex(e => e.textContent === 'Personel');
         for (let i = 0; i < rows.length; i++) {
             data.push(normaliseData(
                 rows[i].childElements()[dateCellIndex].textContent,
                 rows[i].childElements()[patientCellIndex].textContent,
                 birthdateCellIndex >= 0 ? rows[i].childElements()[birthdateCellIndex].textContent : undefined,
+                personnelCellIndex >= 0 ? rows[i].childElements()[personnelCellIndex].textContent : '',
             ))
         }
         return data;
@@ -203,6 +240,25 @@
         await waitForTextChange('#lista .tr_nieparzysty td', currentLP);
     }
 
+    function assignDutyNumbers(data) {
+        let duty = 0;
+        let prevDate = null;
+        let prevPlace = null;
+        let prevMonth = null;
+        for (const row of data) {
+            const month = row.date.slice(0, 7);
+            if (month !== prevMonth) {
+                duty = 1;
+            } else if (row.date !== prevDate || row.place !== prevPlace) {
+                duty++;
+            }
+            prevDate = row.date;
+            prevPlace = row.place;
+            prevMonth = month;
+            row.duty = String(duty);
+        }
+    }
+
     async function pullData() {
         await filterVisits();
         const data = [];
@@ -211,6 +267,7 @@
             data.push(...scrapeVisitsFromPage());
             if (i + 1 < pages) await nextPage(i + 1);
         }
+        assignDutyNumbers(data);
         exportVisitsToCsv(data);
     }
 
