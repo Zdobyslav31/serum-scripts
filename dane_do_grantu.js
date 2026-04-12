@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.4
+// @version      1.5
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -142,7 +142,8 @@
     };
 
     function getPlace(dateString, personnel) {
-        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => personnel.includes(name))) {
+        const normalisedPersonnel = personnel.replace(/\s+/g, ' ').trim();
+        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => normalisedPersonnel.includes(name))) {
             return 'noclegownia żeńska';
         }
         return WEEKDAY_PLACE[new Date(dateString).getDay()] || '';
