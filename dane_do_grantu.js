@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.5
+// @version      1.6
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -142,8 +142,7 @@
     };
 
     function getPlace(dateString, personnel) {
-        const normalisedPersonnel = personnel.replace(/\s+/g, ' ').trim();
-        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => normalisedPersonnel.includes(name))) {
+        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => personnel.includes(name))) {
             return 'noclegownia żeńska';
         }
         return WEEKDAY_PLACE[new Date(dateString).getDay()] || '';
@@ -156,7 +155,8 @@
         patient: '"Kod - inicjały osoby korzystającej"',
         customField1: '"Udzielono pomocy lekarskiej"',
         customField2: '"Udzielono pomocy przedmedycznej"',
-        team: '"Zespół"'
+        weekday: '"Dzień tygodnia"',
+        personnel: '"Wpisujący"'
     };
 
     function generateCsvName() {
@@ -195,9 +195,13 @@
         return isMonday || place === 'noclegownia żeńska';
     }
 
+    const WEEKDAY_NAMES_PL = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+
     function normaliseData(date, patient, birthdate, personnel) {
         const isoDate = changeDateOrder(date);
-        const place = getPlace(isoDate, personnel);
+        const normalisedPersonnel = personnel.replace(/\s+/g, ' ').trim();
+        const place = getPlace(isoDate, normalisedPersonnel);
+        const medicalHelp = isMedicalHelpProvided(isoDate, place);
         return {
             duty: '',
             date: isoDate,
@@ -205,9 +209,10 @@
             patient: patient.split('\xa0')[0].split(' ').map(word => word.charAt(0)).join('')
                 + ' '
                 + (birthdate ? changeDateOrder(birthdate).replace('-', '.') : ''),
-            customField1: isMedicalHelpProvided(isoDate, place) ? "1" : "0",
-            customField2: "1",
-            team: ""
+            customField1: medicalHelp ? "1" : "0",
+            customField2: medicalHelp ? "0" : "1",
+            weekday: WEEKDAY_NAMES_PL[new Date(isoDate).getDay()],
+            personnel: normalisedPersonnel,
         }
     }
 
