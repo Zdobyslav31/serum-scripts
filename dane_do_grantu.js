@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.3
+// @version      1.4
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -126,7 +126,7 @@
     // To add more personnel, append their full name as it appears in Serum's
     // "Personel" column.
     const NOCLEGOWNIA_ZENSKA_PERSONNEL = [
-        'Mateusz Gajda',
+        'Gajda Mateusz',
     ];
 
     // Maps weekday number to the value of "Miejsce świadczenia dyżuru" column.
