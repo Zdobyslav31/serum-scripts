@@ -121,11 +121,18 @@
         return itemsFormatted
     }
 
+    // Personnel whose visits are always assigned to "noclegownia żeńska"
+    // regardless of the weekday. This takes priority over WEEKDAY_PLACE.
+    // To add more personnel, append their full name as it appears in Serum's
+    // "Personel" column.
     const NOCLEGOWNIA_ZENSKA_PERSONNEL = [
         'Mateusz Gajda',
     ];
 
-    // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    // Maps weekday number to the value of "Miejsce świadczenia dyżuru" column.
+    // Keys are JS Date.getDay() values: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat.
+    // Weekdays not listed here (Sun, Fri) will produce an empty value.
+    // This mapping is only used when the personnel is NOT in NOCLEGOWNIA_ZENSKA_PERSONNEL.
     const WEEKDAY_PLACE = {
         1: 'noclegownia męska',
         2: 'noclegownia męska',
@@ -179,6 +186,9 @@
 
     }
 
+    // Determines the value of "Udzielono pomocy lekarskiej" column (1 or 0).
+    // Medical help is marked as provided (1) when the visit falls on a Monday
+    // or takes place at "noclegownia żeńska". All other visits get 0.
     function isMedicalHelpProvided(dateString, place) {
         const isMonday = new Date(dateString).getDay() === 1;
         return isMonday || place === 'noclegownia żeńska';
