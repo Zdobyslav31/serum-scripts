@@ -121,6 +121,21 @@
         return itemsFormatted
     }
 
+    const NOCLEGOWNIA_ZENSKA_PERSONNEL = [
+        'Mateusz Gajda',
+    ];
+
+    function getPlace(dateString, personnel) {
+        if (NOCLEGOWNIA_ZENSKA_PERSONNEL.some(name => personnel.includes(name))) {
+            return 'noclegownia żeńska';
+        }
+        const dayOfWeek = new Date(dateString).getDay();
+        // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        if (dayOfWeek === 3 || dayOfWeek === 4) return 'int./dyżur terenowy';
+        if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 6) return 'noclegownia męska';
+        return '';
+    }
+
     const HEADERS = {
         duty: '"nr dyżuru"',
         date: '"Data"',
@@ -155,21 +170,22 @@
 
     function changeDateOrder(dateString) {
         const matches = dateString.match(/\d+/g);
-        return `${matches[2]}-${matches[1]}=${matches[0]}`
+        return `${matches[2]}-${matches[1]}-${matches[0]}`
 
     }
 
-    function normaliseData(date, patient, birthdate) {
+    function normaliseData(date, patient, birthdate, personnel) {
+        const isoDate = changeDateOrder(date);
+        const place = getPlace(isoDate, personnel);
+        const isMonday = new Date(isoDate).getDay() === 1;
         return {
             duty: '',
-            date: new Date(changeDateOrder(date)).toLocaleDateString('pl-PL',
-                { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-            ),
-            place: '',
+            date: isoDate,
+            place: place,
             patient: patient.split('\xa0')[0].split(' ').map(word => word.charAt(0)).join('')
                 + ' '
                 + (birthdate ? changeDateOrder(birthdate).replace('-', '.') : ''),
-            customField1: "1",
+            customField1: (isMonday || place === 'noclegownia żeńska') ? "1" : "0",
             customField2: "1",
             team: ""
         }
@@ -182,11 +198,13 @@
         const dateCellIndex = header.childElements().findIndex(e => e.textContent === 'Data od');
         const patientCellIndex = header.childElements().findIndex(e => e.textContent === 'Pacjent');
         const birthdateCellIndex = header.childElements().findIndex(e => e.textContent === 'Data urodzenia');
+        const personnelCellIndex = header.childElements().findIndex(e => e.textContent === 'Personel');
         for (let i = 0; i < rows.length; i++) {
             data.push(normaliseData(
                 rows[i].childElements()[dateCellIndex].textContent,
                 rows[i].childElements()[patientCellIndex].textContent,
                 birthdateCellIndex >= 0 ? rows[i].childElements()[birthdateCellIndex].textContent : undefined,
+                personnelCellIndex >= 0 ? rows[i].childElements()[personnelCellIndex].textContent : '',
             ))
         }
         return data;
@@ -203,6 +221,25 @@
         await waitForTextChange('#lista .tr_nieparzysty td', currentLP);
     }
 
+    function assignDutyNumbers(data) {
+        let duty = 0;
+        let prevDate = null;
+        let prevPlace = null;
+        let prevMonth = null;
+        for (const row of data) {
+            const month = row.date.slice(0, 7);
+            if (month !== prevMonth) {
+                duty = 1;
+            } else if (row.date !== prevDate || row.place !== prevPlace) {
+                duty++;
+            }
+            prevDate = row.date;
+            prevPlace = row.place;
+            prevMonth = month;
+            row.duty = String(duty);
+        }
+    }
+
     async function pullData() {
         await filterVisits();
         const data = [];
@@ -211,6 +248,7 @@
             data.push(...scrapeVisitsFromPage());
             if (i + 1 < pages) await nextPage(i + 1);
         }
+        assignDutyNumbers(data);
         exportVisitsToCsv(data);
     }
 
