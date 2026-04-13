@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dane_do_grantu
 // @namespace    PrzystanMedyczna
-// @version      1.6
+// @version      1.7
 // @description  Pobierz dane do grantu
 // @homepageURL  https://greasyfork.org/en/scripts/464326-dane-do-grantu
 // @author       Jedrzej Kubala
@@ -285,10 +285,12 @@
             body.insertAdjacentHTML('beforeend', widgetHtml);
         }
 
+        const prevMonthLastDay = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
+        const prevMonthFirstDay = new Date(prevMonthLastDay.getFullYear(), prevMonthLastDay.getMonth(), 1);
         $('grant_puller-from-day').value = '01';
-        $('grant_puller-to-day').value = ('0' + new Date().getDate()).slice(-2);
-        $("grant_puller-from-month").value = $("grant_puller-to-month").value = ('0' + (new Date().getMonth() + 1)).slice(-2);
-        $("grant_puller-from-year").value = $("grant_puller-to-year").value = new Date().getFullYear();
+        $('grant_puller-to-day').value = ('0' + prevMonthLastDay.getDate()).slice(-2);
+        $("grant_puller-from-month").value = $("grant_puller-to-month").value = ('0' + (prevMonthFirstDay.getMonth() + 1)).slice(-2);
+        $("grant_puller-from-year").value = $("grant_puller-to-year").value = prevMonthFirstDay.getFullYear();
         $("grant_puller_button").addEventListener(
             'click', () => pullData().then(() => console.log('data scraped'))
             , false
