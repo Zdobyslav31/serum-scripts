@@ -107,7 +107,12 @@
         });
     }
 
+    function czy_czynnosc_dodana(czynnosc) {
+        return $('div_typyczynnosci_lista').textContent.toLowerCase().includes(czynnosc.nazwa.toLowerCase());
+    }
+
     async function wypelnij_typ_czynnosci(czynnosc) {
+        if (czy_czynnosc_dodana(czynnosc)) return;
         f_dodaj_typ_czynnosci('');
         await waitForElm('#gabzab_typczynnosci2_t');
         $('gabzab_typczynnosci2_w').setAttribute('value', czynnosc.id);
@@ -122,65 +127,108 @@
         textarea.value += config.szablon_opisu;
     }
 
-    async function wypelnij_pola(config) {
-        console.dir(config)
+    async function wypelnij_czynnosci_i_miejsce(config) {
         for (const element of config.czynnosci) {
             await wypelnij_typ_czynnosci(element);
         }
         $('sel_zab_miejsce').value = config.miejsce;
         $('gab_komorka2_w').value = KOMORKA_ZLECAJACA_ID;
+    }
+
+    async function wypelnij_pola(config) {
+        console.dir(config)
+        await wypelnij_czynnosci_i_miejsce(config);
         dodaj_szablon_opisu(config);
     }
 
-    const POLE_HISTORII = 'badanie_przedmiotowe';
+    const HISTORIA_WIZYT_URL = 'ap_wizyty_nowe_hist.historia_wizyt_lista_html';
+    const HISTORIA_WIZYT_KOD = '529714599';
+    const HISTORIA_MIESIECY = 6;
+    const POLE_BADANIE = 'Badanie przedmiotowe';
+    const POLE_CZYNNOSCI = 'Wykonane czynności';
+    const CZYNNOSC_OPATRUNEK = 'zmiana opatrunku';
+    const PRESET_OPATRUNEK = PRESETS.find(p => p.btn_id === 'opatrunek_btn');
+    const ZNACZNIK_BR = '\u0000';
+    let wstawianie_w_toku = false;
 
-    function waitFor(condition, timeoutMs = 10000) {
-        return new Promise((resolve, reject) => {
-            const observer = new MutationObserver(() => check());
-            const timer = setTimeout(() => { cleanup(); reject(new Error('Serum nie odpowiedział na czas')); }, timeoutMs);
-            const cleanup = () => { observer.disconnect(); clearTimeout(timer); };
-            const check = () => {
-                const result = condition();
-                if (result) { cleanup(); resolve(result); }
-            };
-            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-            check();
+    function sformatuj_date(d) {
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    }
+
+    function wyciagnij_tekst_komorki(komorka) {
+        if (!komorka) return '';
+        const klon = komorka.cloneNode(true);
+        klon.querySelectorAll('br').forEach(br => br.replaceWith(ZNACZNIK_BR));
+        return klon.textContent.replace(/\s+/g, ' ').split(ZNACZNIK_BR).map(l => l.trim()).join('\n').trim();
+    }
+
+    async function pobierz_historie_wizyt(idpacjenta, data_od, data_do) {
+        const losowy = Math.round(Math.random() * 9999999999);
+        const dane_post = `DEF2]]2[[9995]]${losowy}[[26]]${idpacjenta}[[242]][[270]]0[[302]]${HISTORIA_WIZYT_KOD}[[733]]`
+            + `[[1291]]W[[1292]][[1293]]-1[[1294]]${data_od}[[1295]]${data_do}[[1296]][[1299]]-1`
+            + '[[1300]][[1301]][[1302]][[1303]]-1[[5000]]GAB';
+        const odpowiedz = await fetch(HISTORIA_WIZYT_URL, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: 'p=' + dane_post,
+        });
+        if (!odpowiedz.ok) throw new Error(`Serum odpowiedział kodem ${odpowiedz.status}`);
+        const kodowanie = /charset=([\w-]+)/i.exec(odpowiedz.headers.get('content-type') || '')?.[1] || document.characterSet;
+        const html = new TextDecoder(kodowanie).decode(await odpowiedz.arrayBuffer());
+        if (html.includes('loginNow')) throw new Error('sesja Serum wygasła, zaloguj się ponownie');
+        return new DOMParser().parseFromString(html, 'text/html');
+    }
+
+    function wyciagnij_wizyty(dokument) {
+        return [...dokument.querySelectorAll('input[name="wizhist_wybrane_wizyty"]')].map(naglowek => {
+            const szczegoly = naglowek.closest('tr')?.nextElementSibling;
+            const pola = {};
+            szczegoly?.querySelectorAll('tr[class$="_p2"]').forEach(tr => {
+                if (tr.cells.length === 2) pola[tr.cells[0].textContent.trim()] = wyciagnij_tekst_komorki(tr.cells[1]);
+            });
+            return { data: naglowek.getAttribute('wizyta_z_dnia'), idzabiegu: naglowek.dataset.idzabiegu, pola };
         });
     }
 
     async function wstaw_poprzednia_wizyte() {
-        if ($('gab_pacjent1_w').value === '') { alert('Proszę wybrać pacjenta'); return; }
-        if ($('gab_personel1_w').value === '') { alert('Proszę wybrać personel'); return; }
+        if (wstawianie_w_toku) return;
+        const idpacjenta = $('gab_pacjent1_w').value;
+        const biezacy_idzabiegu = $('hid_idzabiegu')?.value || '';
+        if (idpacjenta === '') { alert('Proszę wybrać pacjenta'); return; }
         const textarea = $('gab_badanie_przedmiotowe_w');
-        let modal_otwarty = false;
+        const przycisk = $(POPRZEDNIA_WIZYTA_BTN.btn_id);
+        wstawianie_w_toku = true;
+        przycisk.style.pointerEvents = 'none';
+        przycisk.style.opacity = '0.5';
         try {
-            gab_f_pole_historia_html(POLE_HISTORII);
-            const chk_wszystkie = await waitFor(() => $('chk_historia_pozostali_all'));
-            const chk_wlasne = $('chk_historia_pozostali');
-            const lista = await waitFor(() => $('div_pole_historia_lista'));
-            modal_otwarty = true;
-            await waitFor(() => lista.children.length, 3000).catch(() => { });
-            chk_wlasne.checked = false;
-            chk_wszystkie.checked = true;
-            lista.innerHTML = '';
-            gab_f_pole_historia_lista(POLE_HISTORII, 'N');
-            await waitFor(() => lista.children.length);
-            const wpis = lista.querySelector('input[id^="historia_tresc_"]');
-            if (!wpis) { alert('Pacjent nie ma wcześniejszych wpisów w polu "Badanie przedmiotowe".'); return; }
-            const tekst = wpis.value.replaceAll('&amp;', '&').trimEnd();
+            const dzis = new Date();
+            const data_od = new Date(dzis);
+            data_od.setMonth(data_od.getMonth() - HISTORIA_MIESIECY);
+            const pasuje = w => w.idzabiegu !== biezacy_idzabiegu && w.pola[POLE_BADANIE]
+                && (w.pola[POLE_CZYNNOSCI] || '').toLowerCase().includes(CZYNNOSC_OPATRUNEK);
+            let wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, sformatuj_date(data_od), sformatuj_date(dzis))).find(pasuje);
+            if (!wizyta) {
+                wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, '01-01-2008', sformatuj_date(dzis))).find(pasuje);
+            }
+            if (!wizyta) { alert(`Pacjent nie ma wcześniejszej wizyty z czynnością "${CZYNNOSC_OPATRUNEK}" i wypełnionym polem "${POLE_BADANIE}".`); return; }
+            const tekst = `Data ostatniej wizyty: ${wizyta.data}\n\n${wizyta.pola[POLE_BADANIE]}`;
             if (textarea.value.trim() !== '') textarea.value += '\n';
             textarea.value += tekst;
+            await wypelnij_czynnosci_i_miejsce(PRESET_OPATRUNEK);
         } catch (e) {
             console.error(e);
             alert('Nie udało się wstawić poprzedniej wizyty: ' + e.message);
         } finally {
-            if (modal_otwarty) uf_schowaj_div();
+            wstawianie_w_toku = false;
+            przycisk.style.pointerEvents = '';
+            przycisk.style.opacity = '';
         }
     }
 
     const POPRZEDNIA_WIZYTA_BTN = {
         btn_id: 'poprzednia_wizyta_btn',
-        btn_name: 'Wstaw poprzednią wizytę',
+        btn_name: 'Wstaw poprzednią wizytę opatr.',
         kolor: COLOR_OVERRIDE.navy,
         callback: wstaw_poprzednia_wizyte,
     };
