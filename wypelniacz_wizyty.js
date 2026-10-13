@@ -142,7 +142,6 @@
     }
 
     const HISTORIA_WIZYT_URL = 'ap_wizyty_nowe_hist.historia_wizyt_lista_html';
-    const HISTORIA_WIZYT_KOD = '529714599';
     const HISTORIA_MIESIECY = 6;
     const POLE_BADANIE = 'Badanie przedmiotowe';
     const POLE_CZYNNOSCI = 'Wykonane czynności';
@@ -150,6 +149,12 @@
     const PRESET_OPATRUNEK = PRESETS.find(p => p.btn_id === 'opatrunek_btn');
     const ZNACZNIK_BR = '\u0000';
     let wstawianie_w_toku = false;
+
+    function pobierz_kod_historii() {
+        const kod = typeof wizhist_f_zastosuj_filtr === 'function' && /\[\[302]](\d+)/.exec(String(wizhist_f_zastosuj_filtr))?.[1];
+        if (!kod) throw new Error('nie znaleziono kodu historii wizyt w funkcjach Serum');
+        return kod;
+    }
 
     function sformatuj_date(d) {
         return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
@@ -164,7 +169,7 @@
 
     async function pobierz_historie_wizyt(idpacjenta, data_od, data_do) {
         const losowy = Math.round(Math.random() * 9999999999);
-        const dane_post = `DEF2]]2[[9995]]${losowy}[[26]]${idpacjenta}[[242]][[270]]0[[302]]${HISTORIA_WIZYT_KOD}[[733]]`
+        const dane_post = `DEF2]]2[[9995]]${losowy}[[26]]${idpacjenta}[[242]][[270]]0[[302]]${pobierz_kod_historii()}[[733]]`
             + `[[1291]]W[[1292]][[1293]]-1[[1294]]${data_od}[[1295]]${data_do}[[1296]][[1299]]-1`
             + '[[1300]][[1301]][[1302]][[1303]]-1[[5000]]GAB';
         const odpowiedz = await fetch(HISTORIA_WIZYT_URL, {
@@ -176,7 +181,12 @@
         if (!odpowiedz.ok) throw new Error(`Serum odpowiedział kodem ${odpowiedz.status}`);
         const kodowanie = /charset=([\w-]+)/i.exec(odpowiedz.headers.get('content-type') || '')?.[1] || document.characterSet;
         const html = new TextDecoder(kodowanie).decode(await odpowiedz.arrayBuffer());
-        if (html.includes('loginNow')) throw new Error('sesja Serum wygasła, zaloguj się ponownie');
+        if (html.includes('loginNow')) {
+            const blad = /(?:^|;\s*)blad=(\d+)/.exec(document.cookie)?.[1] ?? '?';
+            throw new Error(blad === '6'
+                ? 'Serum odrzucił żądanie jako naruszenie zasad bezpieczeństwa (kod 6)'
+                : `sesja Serum wygasła, zaloguj się ponownie (kod ${blad})`);
+        }
         return new DOMParser().parseFromString(html, 'text/html');
     }
 
