@@ -148,6 +148,7 @@
     const CZYNNOSC_OPATRUNEK = 'zmiana opatrunku';
     const PRESET_OPATRUNEK = PRESETS.find(p => p.btn_id === 'opatrunek_btn');
     const ZNACZNIK_BR = '\u0000';
+    const NAGLOWEK_DATY = 'Data ostatniej wizyty:';
     let wstawianie_w_toku = false;
 
     function pobierz_kod_historii() {
@@ -190,6 +191,10 @@
         return new DOMParser().parseFromString(html, 'text/html');
     }
 
+    function usun_naglowki_dat(tekst) {
+        return tekst.split('\n').filter(linia => !linia.startsWith(NAGLOWEK_DATY)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
     function wyciagnij_wizyty(dokument) {
         return [...dokument.querySelectorAll('input[name="wizhist_wybrane_wizyty"]')].map(naglowek => {
             const szczegoly = naglowek.closest('tr')?.nextElementSibling;
@@ -197,6 +202,7 @@
             szczegoly?.querySelectorAll('tr[class$="_p2"]').forEach(tr => {
                 if (tr.cells.length === 2) pola[tr.cells[0].textContent.trim()] = wyciagnij_tekst_komorki(tr.cells[1]);
             });
+            if (pola[POLE_BADANIE]) pola[POLE_BADANIE] = usun_naglowki_dat(pola[POLE_BADANIE]);
             return { data: naglowek.getAttribute('wizyta_z_dnia'), idzabiegu: naglowek.dataset.idzabiegu, pola };
         });
     }
@@ -217,12 +223,9 @@
             data_od.setMonth(data_od.getMonth() - HISTORIA_MIESIECY);
             const pasuje = w => w.idzabiegu !== biezacy_idzabiegu && w.pola[POLE_BADANIE]
                 && (w.pola[POLE_CZYNNOSCI] || '').toLowerCase().includes(CZYNNOSC_OPATRUNEK);
-            let wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, sformatuj_date(data_od), sformatuj_date(dzis))).find(pasuje);
-            if (!wizyta) {
-                wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, '01-01-2008', sformatuj_date(dzis))).find(pasuje);
-            }
-            if (!wizyta) { alert(`Pacjent nie ma wcześniejszej wizyty z czynnością "${CZYNNOSC_OPATRUNEK}" i wypełnionym polem "${POLE_BADANIE}".`); return; }
-            const tekst = `Data ostatniej wizyty: ${wizyta.data}\n\n${wizyta.pola[POLE_BADANIE]}`;
+            const wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, sformatuj_date(data_od), sformatuj_date(dzis))).find(pasuje);
+            if (!wizyta) { alert(`Pacjent nie ma w ostatnich ${HISTORIA_MIESIECY} miesiącach wizyty z czynnością "${CZYNNOSC_OPATRUNEK}" i wypełnionym polem "${POLE_BADANIE}".`); return; }
+            const tekst = `${NAGLOWEK_DATY} ${wizyta.data}\n\n${wizyta.pola[POLE_BADANIE]}`;
             if (textarea.value.trim() !== '') textarea.value += '\n';
             textarea.value += tekst;
             await wypelnij_czynnosci_i_miejsce(PRESET_OPATRUNEK);
