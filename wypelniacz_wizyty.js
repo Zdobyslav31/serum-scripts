@@ -148,7 +148,7 @@
     const CZYNNOSC_OPATRUNEK = 'zmiana opatrunku';
     const PRESET_OPATRUNEK = PRESETS.find(p => p.btn_id === 'opatrunek_btn');
     const ZNACZNIK_BR = '\u0000';
-    const NAGLOWEK_DATY = 'Data ostatniej wizyty:';
+    const NAGLOWEK_DATY = 'Skopiowane z wizyty z dnia';
     let wstawianie_w_toku = false;
 
     function pobierz_kod_historii() {
@@ -218,6 +218,7 @@
         przycisk.style.pointerEvents = 'none';
         przycisk.style.opacity = '0.5';
         try {
+            uf_wyswietl_komunikat('Trwa pobieranie historii wizyt');
             const dzis = new Date();
             const data_od = new Date(dzis);
             data_od.setMonth(data_od.getMonth() - HISTORIA_MIESIECY);
@@ -225,7 +226,7 @@
                 && (w.pola[POLE_CZYNNOSCI] || '').toLowerCase().includes(CZYNNOSC_OPATRUNEK);
             const wizyta = wyciagnij_wizyty(await pobierz_historie_wizyt(idpacjenta, sformatuj_date(data_od), sformatuj_date(dzis))).find(pasuje);
             if (!wizyta) { alert(`Pacjent nie ma w ostatnich ${HISTORIA_MIESIECY} miesiącach wizyty z czynnością "${CZYNNOSC_OPATRUNEK}" i wypełnionym polem "${POLE_BADANIE}".`); return; }
-            const tekst = `${NAGLOWEK_DATY} ${wizyta.data}\n\n${wizyta.pola[POLE_BADANIE]}`;
+            const tekst = `${NAGLOWEK_DATY} ${wizyta.data}:\n\n${wizyta.pola[POLE_BADANIE]}`;
             if (textarea.value.trim() !== '') textarea.value += '\n';
             textarea.value += tekst;
             await wypelnij_czynnosci_i_miejsce(PRESET_OPATRUNEK);
@@ -233,6 +234,7 @@
             console.error(e);
             alert('Nie udało się wstawić poprzedniej wizyty: ' + e.message);
         } finally {
+            uf_schowaj_komunikat();
             wstawianie_w_toku = false;
             przycisk.style.pointerEvents = '';
             przycisk.style.opacity = '';
